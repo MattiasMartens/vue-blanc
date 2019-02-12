@@ -1,2 +1,3 @@
-# vue-blanc
+# vue-blank
+
 Functional component library for Vue.js
