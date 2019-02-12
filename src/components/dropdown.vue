@@ -3,22 +3,27 @@
     :value="value"
     @input="updateValue()"
     ref="select"
-    class="slate--dropdown__select"
+    :class="classHooks.select"
   >
     <option
       v-if="nilOption"
       :value="nilValue"
       v-html="getHtml(nilOption)"
+      :class="nilOptionClass"
       disabled
     >
       {{nilOption}}
     </option>
     <template v-if="groupedOptions">
-      <optgroup
+      <div
         v-for="optionGroup in groupedOptions"
         :key="optionGroup.name"
-        :label="getLabel(optionGroup.name)"
+        :class="classHooks.optionGroup"
+        :data-group="optionGroup.name"
       >
+        <option disabled>
+          {{getLabel(optionGroup.name)}}
+        </option>
         <template v-if="rawHtml">
           <option
             v-for="option in optionGroup.options"
@@ -26,6 +31,7 @@
             :value="getValue(option)"
             v-html="getHtml(option)"
             :disabled="isDisabled(option)"
+            :class="getOptionClass(option)"
           />
         </template>
         <template v-else>
@@ -34,11 +40,12 @@
             :key="option"
             :value="getValue(option)"
             :disabled="isDisabled(option)"
+            :class="getOptionClass(option)"
           >
             {{option}}
           </option>
         </template>
-      </optgroup>
+      </div>
     </template>
     <template v-else-if="rawHtml">
       <option
@@ -47,6 +54,7 @@
         :value="getValue(option)"
         v-html="getHtml(option)"
         :disabled="isDisabled(option)"
+        :class="getOptionClass(option)"
       />
     </template>
     <template v-else>
@@ -55,6 +63,7 @@
         :key="option"
         :value="getValue(option)"
         :disabled="isDisabled(option)"
+        :class="getOptionClass(option)"
       >
         {{option}}
       </option>
@@ -112,6 +121,9 @@ export default Vue.extend({
       } else {
         return undefined;
       }
+    },
+    nilOptionClass(): string[] {
+      return [classHooks.option, classHooks.optionDisabled, classHooks.optionNil]
     }
   },
   mounted() {
@@ -132,12 +144,19 @@ export default Vue.extend({
     },
     getLabel(optionGroupName?: string) {
       return optionGroupName === undefined ? "──────────" : optionGroupName;
+    },
+    getOptionClass(option: string) {
+      return this.isDisabled(option) ? [classHooks.option, classHooks.optionDisabled] : classHooks.option;
     }
   }
 });
 
 export const classHooks = {
-
+  option: "slate--dropdown__option",
+  optionDisabled: "slate--dropdown__option--disabled",
+  optionGroup: "slate--dropdown__option-group",
+  optionNil: "slate--dropdown__option--nil",
+  select: "slate--dropdown__select"
 };
 
 export const constructProps = (props: {  nilOption?: string,

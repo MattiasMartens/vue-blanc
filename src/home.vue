@@ -28,6 +28,9 @@ export default Vue.extend({
           B: "walrus",
           C: "eagle"
         },
+        rawHtml: {
+          A: "<strong>STEGOSAURUS</strong>"
+        },
         disabled: {
           B: true
         },
