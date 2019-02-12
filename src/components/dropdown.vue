@@ -8,7 +8,6 @@
     <option
       v-if="nilOption"
       :value="nilValue"
-      v-html="getHtml(nilOption)"
       :class="nilOptionClass"
       disabled
     >
@@ -39,11 +38,12 @@
             v-for="option in optionGroup.options"
             :key="option"
             :value="getValue(option)"
-            v-html="getHtml(option)"
             :disabled="isDisabled(option)"
             :class="getOptionClass(option)"
             :data-group="optionGroup.name"
-          />
+          >
+            {{option}}
+          </option>
         </template>
       </template>
     </template>
@@ -73,7 +73,6 @@
 </template>
 <script lang="ts">
 import Vue, { ComponentOptions } from "vue";
-import { escape } from "lodash";
 
 export default Vue.extend({
   props: {
@@ -139,9 +138,6 @@ export default Vue.extend({
     getValue(option: string) {
       return this.values && option in this.values ? this.values[option] : option;
     },
-    getHtml(option: string) {
-      return this.rawHtml && option in this.rawHtml ? this.rawHtml[option] : escape(option);
-    },
     isDisabled(option: string) {
       return this.disabled && option in this.disabled ? this.disabled[option] : false;
     },
@@ -171,7 +167,6 @@ export const constructProps = (props: {  nilOption?: string,
   options?: string[],
   groupedOptions?: { options: string[], name?: string }[],
   values?: { [option: string]: any },
-  rawHtml?: { [option: string]: string },
   disabled?: { [option: string]: boolean },
   optionComponent?: Vue.Component
 }) => {
