@@ -15,23 +15,23 @@
       {{nilOption}}
     </option>
     <template v-if="groupedOptions">
-      <div
-        v-for="optionGroup in groupedOptions"
-        :key="optionGroup.name"
-        :class="classHooks.optionGroup"
-        :data-group="optionGroup.name"
-      >
-        <option disabled>
+      <template v-for="optionGroup in groupedOptions">
+        <option
+          disabled
+          :key="optionGroup.name"
+        >
           {{getLabel(optionGroup.name)}}
         </option>
-        <template v-if="rawHtml">
-          <option
-            v-for="option in optionGroup.options"
+        <template v-if="optionComponent">
+          <component
+            v-for="(option, index) in optionGroup.options"
+            :is="optionComponent"
             :key="option"
             :value="getValue(option)"
-            v-html="getHtml(option)"
             :disabled="isDisabled(option)"
             :class="getOptionClass(option)"
+            :index="index"
+            :data-group="optionGroup.name"
           />
         </template>
         <template v-else>
@@ -39,23 +39,24 @@
             v-for="option in optionGroup.options"
             :key="option"
             :value="getValue(option)"
+            v-html="getHtml(option)"
             :disabled="isDisabled(option)"
             :class="getOptionClass(option)"
-          >
-            {{option}}
-          </option>
+            :data-group="optionGroup.name"
+          />
         </template>
-      </div>
+      </template>
     </template>
-    <template v-else-if="rawHtml">
+    <template v-else-if="optionComponent">
       <option
-        v-for="option in options"
+        v-for="option in optionGroup.options"
         :key="option"
         :value="getValue(option)"
-        v-html="getHtml(option)"
         :disabled="isDisabled(option)"
         :class="getOptionClass(option)"
-      />
+      >
+        {{option}}
+      </option>
     </template>
     <template v-else>
       <option
@@ -68,11 +69,10 @@
         {{option}}
       </option>
     </template>
-    <slot />
   </select>
 </template>
 <script lang="ts">
-import Vue from "vue";
+import Vue, { ComponentOptions } from "vue";
 import { escape } from "lodash";
 
 export default Vue.extend({
@@ -96,6 +96,9 @@ export default Vue.extend({
     },
     disabled: {
       type: Object as () => { [option: string]: boolean }
+    },
+    optionComponent: {
+      type: Object as () => Vue.Component
     }
   },
   computed: {
@@ -146,7 +149,11 @@ export default Vue.extend({
       return optionGroupName === undefined ? "──────────" : optionGroupName;
     },
     getOptionClass(option: string) {
-      return this.isDisabled(option) ? [classHooks.option, classHooks.optionDisabled] : classHooks.option;
+      const ret = [classHooks.option];
+      this.getValue(option) === this.value && ret.push(classHooks.optionSelected);
+      this.isDisabled(option) && ret.push(classHooks.optionDisabled);
+
+      return ret;
     }
   }
 });
@@ -156,7 +163,8 @@ export const classHooks = {
   optionDisabled: "slate--dropdown__option--disabled",
   optionGroup: "slate--dropdown__option-group",
   optionNil: "slate--dropdown__option--nil",
-  select: "slate--dropdown__select"
+  select: "slate--dropdown__select",
+  optionSelected: "slate--dropdown__option--selected"
 };
 
 export const constructProps = (props: {  nilOption?: string,
@@ -164,7 +172,8 @@ export const constructProps = (props: {  nilOption?: string,
   groupedOptions?: { options: string[], name?: string }[],
   values?: { [option: string]: any },
   rawHtml?: { [option: string]: string },
-  disabled?: { [option: string]: boolean }
+  disabled?: { [option: string]: boolean },
+  optionComponent?: Vue.Component
 }) => {
   if (props.groupedOptions && props.options) {
     console.warn("Both options and grouped options provided, grouped options will override options");
