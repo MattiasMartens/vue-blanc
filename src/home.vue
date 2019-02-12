@@ -22,15 +22,7 @@ export default Vue.extend({
     return {
       selectedOption: undefined,
       dropdownProps: constructProps({
-        groupedOptions: [{ options: ["A", "B"] }, { options: ["C"], name: "cheeze" }],
-        values: {
-          A: "hippo",
-          B: "walrus",
-          C: "eagle"
-        },
-        disabled: {
-          B: true
-        },
+        options: ["A", "B", "C", "D"],
         nilOption: "Select one"
       })
     };

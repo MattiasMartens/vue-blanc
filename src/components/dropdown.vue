@@ -1,78 +1,57 @@
 <template>
-  <select
-    :value="value"
-    @input="updateValue()"
-    ref="select"
-    :class="classHooks.select"
+  <div
+    :class="classHooks.component"
+    @keydown.up="scrollUp"
+    @keydown.down="scrollDown"
   >
-    <option
-      v-if="nilOption"
-      :value="nilValue"
-      :class="nilOptionClass"
-      disabled
+    <div
+      :class="classHooks.optionSelected"
+      @slate-interact="onInteract"
+      @blur="onBlur"
+      v-interactive
+      ref="selected"
     >
-      {{nilOption}}
-    </option>
-    <template v-if="groupedOptions">
-      <template v-for="optionGroup in groupedOptions">
-        <option
-          disabled
-          :key="optionGroup.name"
-        >
-          {{getLabel(optionGroup.name)}}
-        </option>
-        <template v-if="optionComponent">
-          <component
-            v-for="(option, index) in optionGroup.options"
-            :is="optionComponent"
-            :key="option"
-            :value="getValue(option)"
-            :disabled="isDisabled(option)"
-            :class="getOptionClass(option)"
-            :index="index"
-            :data-group="optionGroup.name"
-          />
-        </template>
-        <template v-else>
-          <option
-            v-for="option in optionGroup.options"
-            :key="option"
-            :value="getValue(option)"
-            :disabled="isDisabled(option)"
-            :class="getOptionClass(option)"
-            :data-group="optionGroup.name"
-          >
-            {{option}}
-          </option>
-        </template>
-      </template>
-    </template>
-    <template v-else-if="optionComponent">
-      <option
-        v-for="option in optionGroup.options"
+      {{selectedOption}}
+    </div>
+    <div
+      v-if="selecting"
+      :class="classHooks.container"
+      @slate-interact="onInteract"
+      @blur="onBlur"
+      v-interactive
+      ref="container"
+    >
+      <component
+        :is="realOptionComponent"
+        :value="getValue(nilOption)"
+        :currentSelectedValue="value"
+        :class="getOptionClass({  option: nilOption, nil: true })"
+      />
+      <component
+        :is="realOptionComponent"
+        v-for="(option, index) in options"
         :key="option"
+        :index="index"
+        :option="option"
         :value="getValue(option)"
-        :disabled="isDisabled(option)"
-        :class="getOptionClass(option)"
+        :currentSelectedValue="value"
+        @mouseover="focusOption(option)"
+        :class="getOptionClass({ option })"
       >
-        {{option}}
-      </option>
-    </template>
-    <template v-else>
-      <option
-        v-for="option in options"
-        :key="option"
-        :value="getValue(option)"
-        :disabled="isDisabled(option)"
-        :class="getOptionClass(option)"
-      >
-        {{option}}
-      </option>
-    </template>
-  </select>
+      </component>
+    </div>
+  </div>
 </template>
 <script lang="ts">
 import Vue, { ComponentOptions } from "vue";
+import interactive from "../directives/interactive";
+import DefaultOptionComponent from "./dropdown-default-option.vue";
+
+function cycle(num: number, width: number) {
+  const ret = num % width;
+
+  return ret >= 0 ? ret : width + ret;
+}
 
 export default Vue.extend({
   props: {
@@ -83,97 +62,120 @@ export default Vue.extend({
     options: {
       type: Array as () => string[]
     },
-    groupedOptions: {
-      type: Array as () => { options: string[], name?: string }[]
-    },
     value: {},
     values: {
       type: Object as () => { [option: string]: any }
     },
-    rawHtml: {
-      type: Object as () => { [option: string]: string }
-    },
-    disabled: {
-      type: Object as () => { [option: string]: boolean }
-    },
     optionComponent: {
       type: Object as () => Vue.Component
-    }
+    },
+  },
+  data() {
+    return { selecting: false, focusedOption: undefined as string | undefined };
+  },
+  directives: {
+    interactive
   },
   computed: {
     classHooks() {
       return classHooks;
     },
-    nilValue(): any {
-      if (this.nilOption) {
-        if (this.values && this.nilOption in this.values) {
-          return this.values[this.nilOption]
-        } else {
-          return undefined;
+    selectedOption(): string | undefined {
+      if (this.values) {
+        const option = this.options.find(opt => this.values[opt] === this.value);
+
+        if (option) {
+          return option;
         }
-      } else {
-        return this.firstOption;
       }
+
+      return this.value as string | undefined;
     },
-    firstOption(): string | undefined {
-      if (this.groupedOptions) {
-        return this.groupedOptions[0].options[0];
-      } else if (this.options) {
-        return this.options[0];
-      } else {
-        return undefined;
-      }
-    },
-    nilOptionClass(): string[] {
-      return [classHooks.option, classHooks.optionDisabled, classHooks.optionNil]
+    realOptionComponent(): Vue.Component {
+      return this.optionComponent || DefaultOptionComponent;
     }
   },
   mounted() {
-    this.nilValue === undefined || this.$emit('input', this.nilValue);
+    if (this.value === undefined) {
+      this.selectOption(this.nilOption || this.options[0]);
+    }
   },
   methods: {
-    updateValue() {
-      this.$emit('input', (<HTMLSelectElement>this.$refs.select).value)
+    selectOption(option: string) {
+      this.$emit('input', this.getValue(option));
     },
-    getValue(option: string) {
-      return this.values && option in this.values ? this.values[option] : option;
+    getValue(option: string | undefined) {
+      return option && this.values && option in this.values ? this.values[option] : option;
     },
-    isDisabled(option: string) {
-      return this.disabled && option in this.disabled ? this.disabled[option] : false;
-    },
-    getLabel(optionGroupName?: string) {
-      return optionGroupName === undefined ? "──────────" : optionGroupName;
-    },
-    getOptionClass(option: string) {
+    getOptionClass({ option, nil }: { option: string, nil?: true }) {
       const ret = [classHooks.option];
-      this.getValue(option) === this.value && ret.push(classHooks.optionSelected);
-      this.isDisabled(option) && ret.push(classHooks.optionDisabled);
+      this.getValue(this.selectedOption) === this.value && ret.push(classHooks.optionSelected);
+      nil && ret.push(classHooks.optionNil);
+      this.focusedOption === option && ret.push(classHooks.optionFocus);
 
       return ret;
+    },
+    onInteract() {
+      if (this.focusedOption) {
+        this.selectOption(this.focusedOption);
+      }
+
+      this.selecting = !this.selecting;
+    },
+    onBlur() {
+      const active = document.activeElement;
+      if (this.$refs.selected !== active && this.$refs.container !== active) {
+        this.selecting = false;
+      }
+    },
+    focusOption(option: string) {
+      this.selectedOption !== option && (this.focusedOption = option);
+    },
+    getSelectionIndex(delta: number) {
+      const currentIndex = this.focusedOption === undefined ? 0 : this.options.indexOf(this.focusedOption);
+      const newIndex = cycle(currentIndex + delta, this.options.length);
+
+      if (this.getValue(this.options[newIndex]) === this.value) {
+        return cycle(newIndex + delta, this.options.length)
+      } else {
+        return newIndex;
+      }
+    },
+    scrollUp() {
+      this.focusedOption = this.options[this.getSelectionIndex(-1)];
+    },
+    scrollDown() {
+      this.focusedOption = this.options[this.getSelectionIndex(1)];
     }
   }
 });
 
 export const classHooks = {
+  component: "slate--dropdown",
+  container: "slate--dropdown__container",
   option: "slate--dropdown__option",
-  optionDisabled: "slate--dropdown__option--disabled",
-  optionGroup: "slate--dropdown__option-group",
   optionNil: "slate--dropdown__option--nil",
-  select: "slate--dropdown__select",
-  optionSelected: "slate--dropdown__option--selected"
+  selected: "slate--dropdown__selected",
+  optionSelected: "slate--dropdown__option--selected",
+  optionFocus: "slate--dropdown__option--focus"
 };
 
-export const constructProps = (props: {  nilOption?: string,
-  options?: string[],
-  groupedOptions?: { options: string[], name?: string }[],
+export const constructProps = (props: {
+  nilOption?: string,
+  options: string[],
   values?: { [option: string]: any },
-  disabled?: { [option: string]: boolean },
   optionComponent?: Vue.Component
 }) => {
-  if (props.groupedOptions && props.options) {
-    console.warn("Both options and grouped options provided, grouped options will override options");
-  }
-
   return props;
 };
+
 </script>
+<style>
+.slate--dropdown__option--selected {
+  color: #888;
+}
+
+.slate--dropdown__option--focus {
+  color: #ccc;
+}
+</style>
