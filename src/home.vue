@@ -1,6 +1,6 @@
 <template>
   <div>
-    <SlateDropdown
+    <SlateSelect
       v-bind="dropdownProps"
       v-model="selectedOption"
     />
@@ -12,17 +12,17 @@
 <script lang="ts">
 import Vue from "vue";
 
-import { default as SlateDropdown, constructProps } from "./components/dropdown.vue";
+import { SlateSelect, constructProps, Option } from "./components/select";
 
 export default Vue.extend({
   components: {
-    SlateDropdown
+    SlateSelect
   },
   data() {
     return {
       selectedOption: undefined,
       dropdownProps: constructProps({
-        options: ["A", "B", "C", "D"],
+        options: ["AAAAAAAAA", {name: "BBBB", decorative: true}, "CCCCCC", "D"],
         nilOption: "Select one"
       })
     };

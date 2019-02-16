@@ -20,7 +20,6 @@ const push: DirectiveOptions = {
       keypress: (e: KeyboardEvent) => isInteractKey(e.code) && onInteract(el)
     };
 
-    el.addEventListener("click", handlers.click);
     el.addEventListener("keyup", handlers.keypress);
 
     listeners.set(el, handlers);
