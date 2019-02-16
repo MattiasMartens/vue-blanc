@@ -6,12 +6,12 @@ const listeners = new WeakMap<
 >();
 
 const onInteract = (el: HTMLElement) =>
-  el.dispatchEvent(new Event("slate-interact"));
+  el.dispatchEvent(new Event("slate-push"));
 
 const isInteractKey = (keyCode: string) =>
   keyCode === "Enter" || keyCode === "Space";
 
-const interactive: DirectiveOptions = {
+const push: DirectiveOptions = {
   bind(el) {
     el.tabIndex = 0;
 
@@ -33,4 +33,4 @@ const interactive: DirectiveOptions = {
   }
 };
 
-export default interactive;
+export default push;

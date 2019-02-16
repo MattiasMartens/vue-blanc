@@ -6,9 +6,9 @@
   >
     <div
       :class="classHooks.optionSelected"
-      @slate-interact="onInteract"
+      @slate-push="onPush"
       @blur="onBlur"
-      v-interactive
+      v-push
       ref="selected"
     >
       {{selectedOption}}
@@ -16,10 +16,10 @@
     <div
       v-if="selecting"
       :class="classHooks.container"
-      @slate-interact="onInteract"
       @blur="onBlur"
-      v-interactive
       ref="container"
+      @slate-push="onPush"
+      v-push
     >
       <component
         :is="realOptionComponent"
@@ -44,7 +44,7 @@
 </template>
 <script lang="ts">
 import Vue, { ComponentOptions } from "vue";
-import interactive from "../directives/interactive";
+import push from "../directives/push";
 import DefaultOptionComponent from "./dropdown-default-option.vue";
 
 function cycle(num: number, width: number) {
@@ -74,7 +74,7 @@ export default Vue.extend({
     return { selecting: false, focusedOption: undefined as string | undefined };
   },
   directives: {
-    interactive
+    push
   },
   computed: {
     classHooks() {
@@ -115,7 +115,7 @@ export default Vue.extend({
 
       return ret;
     },
-    onInteract() {
+    onPush() {
       if (this.focusedOption) {
         this.selectOption(this.focusedOption);
       }
@@ -123,7 +123,9 @@ export default Vue.extend({
       this.selecting = !this.selecting;
     },
     onBlur() {
+      console.log("onBlur");
       const active = document.activeElement;
+      debugger;
       if (this.$refs.selected !== active && this.$refs.container !== active) {
         this.selecting = false;
       }
@@ -177,5 +179,20 @@ export const constructProps = (props: {
 
 .slate--dropdown__option--focus {
   color: #ccc;
+}
+
+.slate--dropdown {
+  width: min-content;
+  user-select: none;
+  font-family: arial, sans-serif;
+}
+
+.slate--dropdown__option--selected {
+  min-width: 100%;
+  width: max-content;
+}
+
+.slate--dropdown__container {
+  width: 100%;
 }
 </style>
